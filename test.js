@@ -13,6 +13,8 @@ var canvasNode;
 var context;
 var path;
 
+var snapshots = [];
+
 function initPath(){
 	path = [
 		[100,100], 
@@ -21,6 +23,34 @@ function initPath(){
 		[80, 180], [60, 160], [60, 140],
 		[60, 120], [80, 100]
 	];
+}
+
+function savePosition( x ){
+	var snapshot = [];
+	for( var i = 0; i < path.length; i++ ){
+		snapshot[i] = path[i].slice(0);
+	}
+	snapshots[x] = snapshot;
+}
+
+var tween = 0.5;
+var velocity = 0.01;
+function play(){
+	for(var i = 0; i < path.length; i++){
+		path[i][0] = snapshots[0][i][0]*tween + snapshots[1][i][0]*(1-tween);
+		path[i][1] = snapshots[0][i][1]*tween + snapshots[1][i][1]*(1-tween);
+	}
+	tween += velocity;
+	if( tween >= 1 ){
+		tween = 1;
+		velocity *= -1;
+	}
+	if( tween <= 0 ){
+		tween = 0;
+		velocity *= -1;
+	}
+	repaint();
+	requestAnimationFrame(play);
 }
 
 function repaint() {
@@ -54,86 +84,99 @@ function repaint() {
 	}
 }
 
-function onLoaded(){
-	function onInputBegin(event){
-		// test for collisions
-		var i;
-		for( i = 0; i < path.length; i+=3 ){
-			var dx = (path[i][0] - event.x);
-			var dy = (path[i][1] - event.y);
-			if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
-				dragIndex = i;
-				canvasNode.addEventListener("mousemove", onEndpointDrag);
-				canvasNode.addEventListener("mouseup", onEndpointDragComplete);
-				return;
-			}
+function onInputBegin(event){
+	// test for collisions
+	var i;
+	for( i = 0; i < path.length; i+=3 ){
+		var dx = (path[i][0] - event.x);
+		var dy = (path[i][1] - event.y);
+		if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
+			dragIndex = i;
+			canvasNode.addEventListener("mousemove", onEndpointDrag);
+			canvasNode.addEventListener("mouseup", onEndpointDragComplete);
+			return;
 		}
-		
-		i = 0;
-		while( i < path.length ){
-			var dx = (path[i+1][0] - event.x);
-			var dy = (path[i+1][1] - event.y);
-			if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
-				dragIndex = i+1;
-				endpointIndex = i;
-				oppositeControlIndex = i > 0 ? i - 1 : path.length - 1;
-				canvasNode.addEventListener("mousemove", onControlPointDrag);
-				canvasNode.addEventListener("mouseup", onControlPointDragComplete);
-				return;
-			}
-			
-			dx = (path[i+2][0] - event.x);
-			dy = (path[i+2][1] - event.y);
-			if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
-				dragIndex = i+2;
-				endpointIndex = (i+3) < path.length ? (i+3) : 0;
-				oppositeControlIndex = (i+4) < path.length ? (i+4) : 1;
-				canvasNode.addEventListener("mousemove", onControlPointDrag);
-				canvasNode.addEventListener("mouseup", onControlPointDragComplete);
-				return;
-			}
-			i += 3;
-		}
-	}
-	function onEndpointDrag(event){
-		var dx = event.x - path[dragIndex][0];
-		var dy = event.y - path[dragIndex][1];
-		
-		path[dragIndex][0] = event.x;
-		path[dragIndex][1] = event.y;
-		
-		var prevIndex = dragIndex > 0 ? dragIndex - 1 : path.length - 1;
-		var nextIndex = (dragIndex + 1) < path.length ? dragIndex + 1 : 0;
-		
-		path[prevIndex][0] += dx;
-		path[prevIndex][1] += dy;
-		
-		path[nextIndex][0] += dx;
-		path[nextIndex][1] += dy;
-		
-		requestAnimationFrame(repaint);
-	}
-	function onEndpointDragComplete(event){
-		canvasNode.removeEventListener("mousemove", onEndpointDrag);
-		canvasNode.removeEventListener("mouseup", onEndpointDragComplete);
-	}
-	function onControlPointDrag(event){
-		var dx = event.x - path[dragIndex][0];
-		var dy = event.y - path[dragIndex][1];
-		
-		path[dragIndex][0] = event.x;
-		path[dragIndex][1] = event.y;
-		
-		path[oppositeControlIndex][0] = path[endpointIndex][0] - (path[dragIndex][0] - path[endpointIndex][0]);
-		path[oppositeControlIndex][1] = path[endpointIndex][1] - (path[dragIndex][1] - path[endpointIndex][1]);
-		
-		requestAnimationFrame(repaint);
-	}
-	function onControlPointDragComplete(event){
-		canvasNode.removeEventListener("mousemove", onControlPointDrag);
-		canvasNode.removeEventListener("mouseup", onControlPointDragComplete);
 	}
 	
+	i = 0;
+	while( i < path.length ){
+		var dx = (path[i+1][0] - event.x);
+		var dy = (path[i+1][1] - event.y);
+		if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
+			dragIndex = i+1;
+			endpointIndex = i;
+			oppositeControlIndex = i > 0 ? i - 1 : path.length - 1;
+			canvasNode.addEventListener("mousemove", onControlPointDrag);
+			canvasNode.addEventListener("mouseup", onControlPointDragComplete);
+			return;
+		}
+		
+		dx = (path[i+2][0] - event.x);
+		dy = (path[i+2][1] - event.y);
+		if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
+			dragIndex = i+2;
+			endpointIndex = (i+3) < path.length ? (i+3) : 0;
+			oppositeControlIndex = (i+4) < path.length ? (i+4) : 1;
+			canvasNode.addEventListener("mousemove", onControlPointDrag);
+			canvasNode.addEventListener("mouseup", onControlPointDragComplete);
+			return;
+		}
+		i += 3;
+	}
+}
+function onEndpointDrag(event){
+	var dx = event.x - path[dragIndex][0];
+	var dy = event.y - path[dragIndex][1];
+	
+	path[dragIndex][0] = event.x;
+	path[dragIndex][1] = event.y;
+	
+	var prevIndex = dragIndex > 0 ? dragIndex - 1 : path.length - 1;
+	var nextIndex = (dragIndex + 1) < path.length ? dragIndex + 1 : 0;
+	
+	path[prevIndex][0] += dx;
+	path[prevIndex][1] += dy;
+	
+	path[nextIndex][0] += dx;
+	path[nextIndex][1] += dy;
+	
+	requestAnimationFrame(repaint);
+}
+function onEndpointDragComplete(event){
+	canvasNode.removeEventListener("mousemove", onEndpointDrag);
+	canvasNode.removeEventListener("mouseup", onEndpointDragComplete);
+}
+function onControlPointDrag(event){
+	var dx = event.x - path[dragIndex][0];
+	var dy = event.y - path[dragIndex][1];
+	
+	path[dragIndex][0] = event.x;
+	path[dragIndex][1] = event.y;
+	
+	path[oppositeControlIndex][0] = path[endpointIndex][0] - (path[dragIndex][0] - path[endpointIndex][0]);
+	path[oppositeControlIndex][1] = path[endpointIndex][1] - (path[dragIndex][1] - path[endpointIndex][1]);
+	
+	requestAnimationFrame(repaint);
+}
+function onControlPointDragComplete(event){
+	canvasNode.removeEventListener("mousemove", onControlPointDrag);
+	canvasNode.removeEventListener("mouseup", onControlPointDragComplete);
+}
+
+function onKeyDown(event){
+	if( event.keyCode == 49 ){
+		savePosition(0);
+	}else if( event.keyCode == 50 ){
+		savePosition(1);
+	}else if( event.keyCode == 32 ){
+		play();
+	}
+}
+function onKeyUp(event){
+	console.log( event.keyCode );
+}
+
+function onLoaded(){
 	canvasNode = document.getElementById('canvas');
 	context = canvasNode.getContext('2d');
 
@@ -141,6 +184,9 @@ function onLoaded(){
 	canvas.height = window.innerHeight;
 	
 	canvasNode.addEventListener("mousedown", onInputBegin);
+	
+	window.addEventListener("keydown", onKeyDown);
+	window.addEventListener("keydown", onKeyUp);
 	
 	initPath();
 	repaint();
