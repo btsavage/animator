@@ -93,7 +93,7 @@ function onInputBegin(event){
 		if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
 			dragIndex = i;
 			canvasNode.addEventListener("mousemove", onEndpointDrag);
-			canvasNode.addEventListener("mouseup", onEndpointDragComplete);
+			document.addEventListener("mouseup", onEndpointDragComplete);
 			return;
 		}
 	}
@@ -107,7 +107,7 @@ function onInputBegin(event){
 			endpointIndex = i;
 			oppositeControlIndex = i > 0 ? i - 1 : path.length - 1;
 			canvasNode.addEventListener("mousemove", onControlPointDrag);
-			canvasNode.addEventListener("mouseup", onControlPointDragComplete);
+			document.addEventListener("mouseup", onControlPointDragComplete);
 			return;
 		}
 		
@@ -118,7 +118,7 @@ function onInputBegin(event){
 			endpointIndex = (i+3) < path.length ? (i+3) : 0;
 			oppositeControlIndex = (i+4) < path.length ? (i+4) : 1;
 			canvasNode.addEventListener("mousemove", onControlPointDrag);
-			canvasNode.addEventListener("mouseup", onControlPointDragComplete);
+			document.addEventListener("mouseup", onControlPointDragComplete);
 			return;
 		}
 		i += 3;
@@ -144,7 +144,7 @@ function onEndpointDrag(event){
 }
 function onEndpointDragComplete(event){
 	canvasNode.removeEventListener("mousemove", onEndpointDrag);
-	canvasNode.removeEventListener("mouseup", onEndpointDragComplete);
+	document.removeEventListener("mouseup", onEndpointDragComplete);
 }
 function onControlPointDrag(event){
 	var dx = event.x - path[dragIndex][0];
@@ -160,7 +160,7 @@ function onControlPointDrag(event){
 }
 function onControlPointDragComplete(event){
 	canvasNode.removeEventListener("mousemove", onControlPointDrag);
-	canvasNode.removeEventListener("mouseup", onControlPointDragComplete);
+	document.removeEventListener("mouseup", onControlPointDragComplete);
 }
 
 function onKeyDown(event){
@@ -190,6 +190,8 @@ function onLoaded(){
 	
 	initPath();
 	repaint();
+	
+	doLayersInit();
 }
 
 // Assumes that you have already called:
@@ -214,4 +216,46 @@ function drawCircle( pt ){
 	context.beginPath();
 	context.arc( pt[0], pt[1], KNOB_RADIUS, 0, TWO_PI );
 	context.fill();
+}
+
+
+//Layers
+
+function doLayersInit(){
+	var layersContainer = document.getElementById("layers");
+	var layers = layersContainer.children;
+	for( var i = 0; i < layers.length; i++ ){
+		var layer = layers.item(i);
+		layer.addEventListener("mousedown", onLayerMouseDown);		
+	}
+}
+
+var draggedLayer;
+function onLayerMouseDown(event){
+	draggedLayer = event.target;
+	
+	document.addEventListener("mousemove", onLayerDrag);
+	document.addEventListener("mouseup", onLayerDragEnd);
+}
+
+function onLayerDrag(event){
+	var rect = draggedLayer.getBoundingClientRect();
+	if( event.y < rect.top ){
+		if( draggedLayer.previousSibling ){
+			draggedLayer.parentElement.insertBefore(draggedLayer, draggedLayer.previousSibling);
+		}else{
+			console.log("at the top");
+		}
+	}else if( event.y > rect.bottom ){
+		if( draggedLayer.nextSibling ){
+			draggedLayer.parentElement.insertBefore(draggedLayer.nextSibling, draggedLayer);
+		}
+	}
+}
+
+function onLayerDragEnd(event){
+	var layer = event.target;
+	
+	document.removeEventListener("mousemove", onLayerDrag);
+	document.removeEventListener("mouseup", onLayerDragEnd);
 }
