@@ -88,8 +88,8 @@ function onInputBegin(event){
 	// test for collisions
 	var i;
 	for( i = 0; i < path.length; i+=3 ){
-		var dx = (path[i][0] - event.x);
-		var dy = (path[i][1] - event.y);
+		var dx = (path[i][0] - event.offsetX);
+		var dy = (path[i][1] - event.offsetY);
 		if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
 			dragIndex = i;
 			canvasNode.addEventListener("mousemove", onEndpointDrag);
@@ -100,8 +100,8 @@ function onInputBegin(event){
 	
 	i = 0;
 	while( i < path.length ){
-		var dx = (path[i+1][0] - event.x);
-		var dy = (path[i+1][1] - event.y);
+		var dx = (path[i+1][0] - event.offsetX);
+		var dy = (path[i+1][1] - event.offsetY);
 		if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
 			dragIndex = i+1;
 			endpointIndex = i;
@@ -111,8 +111,8 @@ function onInputBegin(event){
 			return;
 		}
 		
-		dx = (path[i+2][0] - event.x);
-		dy = (path[i+2][1] - event.y);
+		dx = (path[i+2][0] - event.offsetX);
+		dy = (path[i+2][1] - event.offsetY);
 		if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
 			dragIndex = i+2;
 			endpointIndex = (i+3) < path.length ? (i+3) : 0;
@@ -125,11 +125,11 @@ function onInputBegin(event){
 	}
 }
 function onEndpointDrag(event){
-	var dx = event.x - path[dragIndex][0];
-	var dy = event.y - path[dragIndex][1];
+	var dx = event.offsetX - path[dragIndex][0];
+	var dy = event.offsetY - path[dragIndex][1];
 	
-	path[dragIndex][0] = event.x;
-	path[dragIndex][1] = event.y;
+	path[dragIndex][0] = event.offsetX;
+	path[dragIndex][1] = event.offsetY;
 	
 	var prevIndex = dragIndex > 0 ? dragIndex - 1 : path.length - 1;
 	var nextIndex = (dragIndex + 1) < path.length ? dragIndex + 1 : 0;
@@ -147,11 +147,11 @@ function onEndpointDragComplete(event){
 	document.removeEventListener("mouseup", onEndpointDragComplete);
 }
 function onControlPointDrag(event){
-	var dx = event.x - path[dragIndex][0];
-	var dy = event.y - path[dragIndex][1];
+	var dx = event.offsetX - path[dragIndex][0];
+	var dy = event.offsetY - path[dragIndex][1];
 	
-	path[dragIndex][0] = event.x;
-	path[dragIndex][1] = event.y;
+	path[dragIndex][0] = event.offsetX;
+	path[dragIndex][1] = event.offsetY;
 	
 	path[oppositeControlIndex][0] = path[endpointIndex][0] - (path[dragIndex][0] - path[endpointIndex][0]);
 	path[oppositeControlIndex][1] = path[endpointIndex][1] - (path[dragIndex][1] - path[endpointIndex][1]);
@@ -238,18 +238,56 @@ function onLayerMouseDown(event){
 	document.addEventListener("mouseup", onLayerDragEnd);
 }
 
+function previousDiv( layer ){
+	var temp = layer.previousSibling;
+	while( true ){
+		if( !temp ){
+			return null;
+		}
+		if(temp instanceof HTMLDivElement){
+			return temp;
+		}
+		temp = temp.previousSibling;
+	}
+	return temp;
+}
+
+function nextDiv( layer ){
+	var temp = layer.nextSibling;
+	while( true ){
+		if( !temp ){
+			return null;
+		}
+		if(temp instanceof HTMLDivElement){
+			return temp;
+		}
+		temp = temp.nextSibling;
+	}
+	return temp;
+}
+
+
 function onLayerDrag(event){
-	var rect = draggedLayer.getBoundingClientRect();
-	if( event.y < rect.top ){
-		if( draggedLayer.previousSibling ){
-			draggedLayer.parentElement.insertBefore(draggedLayer, draggedLayer.previousSibling);
-		}else{
-			console.log("at the top");
-		}
-	}else if( event.y > rect.bottom ){
-		if( draggedLayer.nextSibling ){
-			draggedLayer.parentElement.insertBefore(draggedLayer.nextSibling, draggedLayer);
-		}
+	var above = previousDiv(draggedLayer);
+	var insertionIndex = null;
+	while( above && event.y < above.getBoundingClientRect().bottom ){
+		insertionIndex = above;
+		above = previousDiv(above);
+	}
+	
+	if( insertionIndex ){
+		draggedLayer.parentElement.insertBefore(draggedLayer, insertionIndex);
+		return;
+	}
+	
+	var below = nextDiv(draggedLayer);
+	while( below && event.y > below.getBoundingClientRect().top ){
+		insertionIndex = below;
+		below = nextDiv(below);
+	}
+	
+	if( insertionIndex ){
+		draggedLayer.parentElement.insertBefore(draggedLayer, insertionIndex.nextSibling);
 	}
 }
 

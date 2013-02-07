@@ -4,6 +4,11 @@
 }
 
 .layered{
+	border: 1px solid rgb(100,100,100);
+	padding: 1px;
+	margin: 2px;
+	
+	
 	-webkit-user-select: none; /* Chrome/Safari */        
 	-moz-user-select: none; /* Firefox */
 	-ms-user-select: none; /* IE10+ */
