@@ -6,36 +6,54 @@ const KNOB_RADIUS_SQUARED = KNOB_RADIUS*KNOB_RADIUS;
 const TWO_PI = 2*Math.PI;
 
 var dragIndex;
+var draggedPath;
 var endpointIndex;
 var oppositeControlIndex;
 
 var canvasNode;
 var context;
-var path;
+var paths;
 
 var snapshots = [];
 
+function Path(fillColor, data){
+	this.fillColor = fillColor;
+	this.data = data;
+}
+
 function initPath(){
-	path = [
-		[100,100], 
-		[140,100], [140,120], [140,140],
-		[140,160], [120,180], [100,180],
-		[80, 180], [60, 160], [60, 140],
-		[60, 120], [80, 100]
+	paths = [
+		new Path( "rgb(100, 135, 200)", [
+			[100,100], 
+			[140,100], [140,120], [140,140],
+			[140,160], [120,180], [100,180],
+			[80, 180], [60, 160], [60, 140],
+			[60, 120], [80, 100]
+		]),
+		new Path( "rgb(240, 190, 210)", [
+			[150, 100],
+			[180, 100], [200, 120], [200, 140],
+			[200, 160], [180, 140]
+		])
 	];
 }
 
 function savePosition( x ){
+	throw new Error("out of date");
+	/*
 	var snapshot = [];
 	for( var i = 0; i < path.length; i++ ){
 		snapshot[i] = path[i].slice(0);
 	}
 	snapshots[x] = snapshot;
+	*/
 }
 
 var tween = 0.5;
 var velocity = 0.01;
 function play(){
+	throw new Error("out of date");
+	/*
 	for(var i = 0; i < path.length; i++){
 		path[i][0] = snapshots[0][i][0]*tween + snapshots[1][i][0]*(1-tween);
 		path[i][1] = snapshots[0][i][1]*tween + snapshots[1][i][1]*(1-tween);
@@ -51,94 +69,113 @@ function play(){
 	}
 	repaint();
 	requestAnimationFrame(play);
+	*/
 }
 
 function repaint() {
 	console.log("repaint");
 	canvas.width = canvas.width;
 	
-	context.beginPath();
-	context.moveTo(path[0][0], path[0][1]);
-	var index = 1;
-	while( index + 3 < path.length ){
-		traceBezier(context, path[index], path[index+1], path[index+2]);
-		index += 3;
-	}
-	traceBezier(context, path[index], path[index+1], path[0])
-	context.strokeStyle = 'rgb(0,0,0);';
-	context.stroke();
+	for( var i = 0; i < paths.length; i++ ){
+		var path = paths[i];
+		var pathData = path.data;
+		
+		context.beginPath();
+		context.fillStyle = path.fillColor;
+		context.moveTo(pathData[0][0], pathData[0][1]);
+		var index = 1;
+		while( index + 3 < pathData.length ){
+			traceBezier(context, pathData[index], pathData[index+1], pathData[index+2]);
+			index += 3;
+		}
+		traceBezier(context, pathData[index], pathData[index+1], pathData[0])
+		context.strokeStyle = 'rgb(0,0,0);';
+		context.stroke();
+		context.fill(path.fillColor);
 	
-	index = 0;
-	while( index + 3 < path.length ){
-		drawHandles(context, path[index], path[index+1]);
-		drawHandles(context, path[index+3], path[index+2]);
-		index += 3;
-	}
-	drawHandles(context, path[index], path[index+1]);
-	drawHandles(context, path[0], path[index+2]);
+		context.fillStyle = "rgb(0,0,0)";
+		index = 0;
+		while( index + 3 < pathData.length ){
+			drawHandles(context, pathData[index], pathData[index+1]);
+			drawHandles(context, pathData[index+3], pathData[index+2]);
+			index += 3;
+		}
+		drawHandles(context, pathData[index], pathData[index+1]);
+		drawHandles(context, pathData[0], pathData[index+2]);
 	
-	index = 0;
-	while( index < path.length ){
-		drawCircle( path[index] );
-		index += 3;
+		index = 0;
+		while( index < pathData.length ){
+			drawCircle( pathData[index] );
+			index += 3;
+		}
 	}
 }
 
 function onInputBegin(event){
 	// test for collisions
-	var i;
-	for( i = 0; i < path.length; i+=3 ){
-		var dx = (path[i][0] - event.offsetX);
-		var dy = (path[i][1] - event.offsetY);
-		if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
-			dragIndex = i;
-			canvasNode.addEventListener("mousemove", onEndpointDrag);
-			document.addEventListener("mouseup", onEndpointDragComplete);
-			return;
+	for( var j = paths.length - 1; j >= 0; j-- ){
+		var path = paths[j];
+		var pathData = path.data;
+
+		var i;
+		for( i = 0; i < pathData.length; i+=3 ){
+			var dx = (pathData[i][0] - event.offsetX);
+			var dy = (pathData[i][1] - event.offsetY);
+			if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
+				draggedPath = j;
+				dragIndex = i;
+				canvasNode.addEventListener("mousemove", onEndpointDrag);
+				document.addEventListener("mouseup", onEndpointDragComplete);
+				return;
+			}
 		}
-	}
 	
-	i = 0;
-	while( i < path.length ){
-		var dx = (path[i+1][0] - event.offsetX);
-		var dy = (path[i+1][1] - event.offsetY);
-		if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
-			dragIndex = i+1;
-			endpointIndex = i;
-			oppositeControlIndex = i > 0 ? i - 1 : path.length - 1;
-			canvasNode.addEventListener("mousemove", onControlPointDrag);
-			document.addEventListener("mouseup", onControlPointDragComplete);
-			return;
-		}
+		i = 0;
+		while( i < pathData.length ){
+			var dx = (pathData[i+1][0] - event.offsetX);
+			var dy = (pathData[i+1][1] - event.offsetY);
+			if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
+				draggedPath = j;
+				dragIndex = i+1;
+				endpointIndex = i;
+				oppositeControlIndex = i > 0 ? i - 1 : pathData.length - 1;
+				canvasNode.addEventListener("mousemove", onControlPointDrag);
+				document.addEventListener("mouseup", onControlPointDragComplete);
+				return;
+			}
 		
-		dx = (path[i+2][0] - event.offsetX);
-		dy = (path[i+2][1] - event.offsetY);
-		if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
-			dragIndex = i+2;
-			endpointIndex = (i+3) < path.length ? (i+3) : 0;
-			oppositeControlIndex = (i+4) < path.length ? (i+4) : 1;
-			canvasNode.addEventListener("mousemove", onControlPointDrag);
-			document.addEventListener("mouseup", onControlPointDragComplete);
-			return;
+			dx = (pathData[i+2][0] - event.offsetX);
+			dy = (pathData[i+2][1] - event.offsetY);
+			if( (dx*dx + dy*dy) < KNOB_RADIUS_SQUARED ){
+				draggedPath = j;
+				dragIndex = i+2;
+				endpointIndex = (i+3) < pathData.length ? (i+3) : 0;
+				oppositeControlIndex = (i+4) < pathData.length ? (i+4) : 1;
+				canvasNode.addEventListener("mousemove", onControlPointDrag);
+				document.addEventListener("mouseup", onControlPointDragComplete);
+				return;
+			}
+			i += 3;
 		}
-		i += 3;
 	}
 }
 function onEndpointDrag(event){
-	var dx = event.offsetX - path[dragIndex][0];
-	var dy = event.offsetY - path[dragIndex][1];
+	var path = paths[draggedPath];
+	var pathData = path.data;
+	var dx = event.offsetX - pathData[dragIndex][0];
+	var dy = event.offsetY - pathData[dragIndex][1];
 	
-	path[dragIndex][0] = event.offsetX;
-	path[dragIndex][1] = event.offsetY;
+	pathData[dragIndex][0] = event.offsetX;
+	pathData[dragIndex][1] = event.offsetY;
 	
-	var prevIndex = dragIndex > 0 ? dragIndex - 1 : path.length - 1;
-	var nextIndex = (dragIndex + 1) < path.length ? dragIndex + 1 : 0;
+	var prevIndex = dragIndex > 0 ? dragIndex - 1 : pathData.length - 1;
+	var nextIndex = (dragIndex + 1) < pathData.length ? dragIndex + 1 : 0;
 	
-	path[prevIndex][0] += dx;
-	path[prevIndex][1] += dy;
+	pathData[prevIndex][0] += dx;
+	pathData[prevIndex][1] += dy;
 	
-	path[nextIndex][0] += dx;
-	path[nextIndex][1] += dy;
+	pathData[nextIndex][0] += dx;
+	pathData[nextIndex][1] += dy;
 	
 	requestAnimationFrame(repaint);
 }
@@ -147,14 +184,16 @@ function onEndpointDragComplete(event){
 	document.removeEventListener("mouseup", onEndpointDragComplete);
 }
 function onControlPointDrag(event){
-	var dx = event.offsetX - path[dragIndex][0];
-	var dy = event.offsetY - path[dragIndex][1];
+	var path = paths[draggedPath];
+	var pathData = path.data;
+	var dx = event.offsetX - pathData[dragIndex][0];
+	var dy = event.offsetY - pathData[dragIndex][1];
 	
-	path[dragIndex][0] = event.offsetX;
-	path[dragIndex][1] = event.offsetY;
+	pathData[dragIndex][0] = event.offsetX;
+	pathData[dragIndex][1] = event.offsetY;
 	
-	path[oppositeControlIndex][0] = path[endpointIndex][0] - (path[dragIndex][0] - path[endpointIndex][0]);
-	path[oppositeControlIndex][1] = path[endpointIndex][1] - (path[dragIndex][1] - path[endpointIndex][1]);
+	pathData[oppositeControlIndex][0] = pathData[endpointIndex][0] - (pathData[dragIndex][0] - pathData[endpointIndex][0]);
+	pathData[oppositeControlIndex][1] = pathData[endpointIndex][1] - (pathData[dragIndex][1] - pathData[endpointIndex][1]);
 	
 	requestAnimationFrame(repaint);
 }
@@ -195,7 +234,7 @@ function onLoaded(){
 }
 
 // Assumes that you have already called:
-// context.beginPath(path[0][0], path[0][1]);
+// context.beginPath(pathData[0][0], pathData[0][1]);
 // context.moveTo()
 function traceBezier(context, control1, control2, end){
 	context.bezierCurveTo( control1[0], control1[1], control2[0], control2[1], end[0], end[1] );
