@@ -4,9 +4,12 @@
 }
 
 .layered{
+	height: 18px;
+	
 	border: 1px solid rgb(100,100,100);
 	padding: 1px;
 	margin: 2px;
+	
 	
 	
 	-webkit-user-select: none; /* Chrome/Safari */        

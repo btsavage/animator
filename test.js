@@ -18,7 +18,8 @@ var paths;
 
 var snapshots = [];
 
-function Path(fillColor, data){
+function Path(name, fillColor, data){
+	this.name = name;
 	this.fillColor = fillColor;
 	this.data = data;
 }
@@ -78,19 +79,57 @@ function countLineIntersections(start, end, x, y){
 
 function initPath(){
 	paths = [
-		new Path( "rgb(100, 135, 200)", [
+		new Path( "Path 1", "rgb(100, 135, 200)", [
 			[100,100], 
 			[140,100], [140,120], [140,140],
 			[140,160], [120,180], [100,180],
 			[80, 180], [60, 160], [60, 140],
 			[60, 120], [80, 100]
 		]),
-		new Path( "rgb(240, 190, 210)", [
+		new Path( "Path 2", "rgb(240, 190, 210)", [
 			[150, 100],
-			[180, 100], [200, 120], [200, 140],
-			[200, 160], [180, 140]
+			[200, 50], [300, 100], [200, 200],
+			[100, 300], [100, 150]
+		]),
+		new Path( "Path 2", "rgb(100, 100, 250)", [
+			[300, 100],
+			[500, 200], [600, 300], [500, 400],
+			[200, 500], [100, 400], [50, 200],
+			[150, 100], [200, 200]
+		]),
+		new Path( "Path 2", "rgb(0, 250, 185)", [
+			[50, 50],
+			[150, 50], [200, 20], [250, 15],
+			[250, 200], [100, 200] 
 		])
 	];
+	
+	for( var i = 0; i < paths.length; i++ ){
+		var path = paths[i];
+		var layer = document.createElement("div");
+		layer.classList.add("layered");
+		layer.style.backgroundColor = path.fillColor;
+		layer.textContent = path.name;
+		listenForIndexChanges(layer, path)
+		
+		document.getElementById('layers').appendChild(layer)
+	}
+}
+
+function listenForIndexChanges(layer, path){
+	layer.addEventListener( "indexUpdated", function(e){
+		var layerIndex = 0;
+		var temp = previousDiv(layer);
+		while( temp != null ){
+			layerIndex += 1;
+			temp = previousDiv(temp);
+		}
+		
+		var idx = paths.indexOf(path);
+		paths.splice(idx, 1);
+		paths.splice(layerIndex, 0, path);
+		requestAnimationFrame(repaint);
+	})
 }
 
 function savePosition( x ){
@@ -398,6 +437,7 @@ function onLayerDrag(event){
 	
 	if( insertionIndex ){
 		draggedLayer.parentElement.insertBefore(draggedLayer, insertionIndex);
+		draggedLayer.dispatchEvent( new Event("indexUpdated") );
 		return;
 	}
 	
@@ -409,6 +449,7 @@ function onLayerDrag(event){
 	
 	if( insertionIndex ){
 		draggedLayer.parentElement.insertBefore(draggedLayer, insertionIndex.nextSibling);
+		draggedLayer.dispatchEvent( new Event("indexUpdated") );
 	}
 }
 
