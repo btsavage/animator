@@ -9,6 +9,8 @@ var dragIndex;
 var draggedPath;
 var endpointIndex;
 var oppositeControlIndex;
+var pathDragOffsetX;
+var pathDragOffsetY;
 
 var canvasNode;
 var context;
@@ -19,6 +21,59 @@ var snapshots = [];
 function Path(fillColor, data){
 	this.fillColor = fillColor;
 	this.data = data;
+}
+
+Path.prototype = {
+	contains: function contains(x, y){
+		var totalIntersections = 0;
+		for( var i = 0; i < this.data.length; i+= 3 ){
+			totalIntersections += countCubicBezierIntersections(this.data[i], this.data[i+1], this.data[i+2], this.data[(i+3)%this.data.length], x, y);
+		}
+		return (totalIntersections % 2) == 1;
+	}
+}
+
+function lirp(start, end, t){
+	return [
+		(1-t)*start[0] + t*end[0],
+		(1-t)*start[1] + t*end[1]
+	];
+}
+
+const NUM_MIDPOINTS = 10;
+function countCubicBezierIntersections(start, control1, control2, end, x, y){
+	var total = 0;
+	var last = start;
+	
+	for( var i = 0; i < NUM_MIDPOINTS; i++ ){
+		var cur = cubicBezierAt(start, control1, control2, end, (i+1)/(NUM_MIDPOINTS+1));
+		context.lineTo(cur[0], cur[1]);
+		total += countLineIntersections(last, cur, x, y);
+		last = cur;
+	}
+	
+	total += countLineIntersections(last, end, x, y);
+	return total;
+}
+
+function cubicBezierAt(start, control1, control2, end, t){
+	var side1 = lirp(start, control1, t);
+	var side2 = lirp(control1, control2, t);
+	var side3 = lirp(control2, end, t);
+	return lirp( lirp(side1, side2, t), lirp(side2, side3, t), t );
+}
+
+function countLineIntersections(start, end, x, y){
+	var yMin = Math.min(start[1], end[1]);
+	var yMax = Math.max(start[1], end[1]);
+	if( (y < yMin) || (y > yMax) ){
+		return 0;
+	}
+	var t = (y-start[1])/(end[1]-start[1]);
+	if( x < start[0] + t*(end[0]-start[0]) ){
+		return 1;
+	}
+	return 0;
 }
 
 function initPath(){
@@ -157,8 +212,35 @@ function onInputBegin(event){
 			}
 			i += 3;
 		}
+		
+		if( path.contains(event.offsetX, event.offsetY) ){
+			draggedPath = j;
+			pathDragOffsetX = (event.offsetX - pathData[0][0]);
+			pathDragOffsetY = (event.offsetY - pathData[0][1]);
+			canvasNode.addEventListener("mousemove", onPathDragged);
+			document.addEventListener("mouseup", onPathDragComplete);
+			return;
+		}
 	}
 }
+function onPathDragged(event){
+	path = paths[draggedPath];
+	var pathData = path.data;
+	var dx = (event.offsetX - pathData[0][0]) - pathDragOffsetX;
+	var dy = (event.offsetY - pathData[0][1]) - pathDragOffsetY;
+	
+	for( var i = 0; i < pathData.length; i++ ){
+		pathData[i][0] += dx;
+		pathData[i][1] += dy;
+	}
+	
+	requestAnimationFrame(repaint);
+}
+function onPathDragComplete(event){
+	canvasNode.removeEventListener("mousemove", onPathDragged);
+	document.removeEventListener("mouseup", onPathDragComplete);
+}
+
 function onEndpointDrag(event){
 	var path = paths[draggedPath];
 	var pathData = path.data;
