@@ -18,10 +18,11 @@ var paths;
 
 var snapshots = [];
 
-function Path(name, fillColor, data){
+function Path(name, fillColor, data, outline){
 	this.name = name;
 	this.fillColor = fillColor;
 	this.data = data;
+	this.outline = false;
 }
 
 Path.prototype = {
@@ -85,23 +86,23 @@ function initPath(){
 			[140,160], [120,180], [100,180],
 			[80, 180], [60, 160], [60, 140],
 			[60, 120], [80, 100]
-		]),
+		], false),
 		new Path( "Path 2", "rgb(240, 190, 210)", [
 			[150, 100],
 			[200, 50], [300, 100], [200, 200],
 			[100, 300], [100, 150]
-		]),
+		], false),
 		new Path( "Path 3", "rgb(100, 100, 250)", [
 			[300, 100],
 			[500, 200], [600, 300], [500, 400],
 			[200, 500], [100, 400], [50, 200],
 			[150, 100], [200, 200]
-		]),
+		], false),
 		new Path( "Path 4", "rgb(0, 250, 185)", [
 			[50, 50],
 			[150, 50], [200, 20], [250, 15],
 			[250, 200], [100, 200] 
-		])
+		], false)
 	];
 	
 	for( var i = 0; i < paths.length; i++ ){
@@ -121,6 +122,7 @@ function initPath(){
 		outlineButton.value = "Outline";
 		outlineButton.style.float = "left";
 		layer.appendChild(outlineButton);
+		listenForOutlineButtonClick(path, outlineButton);
 		
 		var pathNameInput = document.createElement("input");
 		pathNameInput.type = "text";
@@ -141,6 +143,14 @@ function initPath(){
 		
 		document.getElementById('layers').appendChild(layer)
 	}
+}
+
+function listenForOutlineButtonClick(path, button){
+	button.addEventListener("click", function(e){
+		path.outline = !path.outline;
+		button.value = path.outline ? "Filled" : "Outline";
+		requestAnimationFrame(repaint);
+	})
 }
 
 function listenForPathNameLabelClick(path, label, input){
@@ -224,7 +234,9 @@ function repaint() {
 		var pathData = path.data;
 		
 		context.beginPath();
-		context.fillStyle = path.fillColor;
+		if( !path.outline ){
+			context.fillStyle = path.fillColor;
+		}
 		context.moveTo(pathData[0][0], pathData[0][1]);
 		var index = 1;
 		while( index + 3 < pathData.length ){
@@ -232,10 +244,18 @@ function repaint() {
 			index += 3;
 		}
 		traceBezier(context, pathData[index], pathData[index+1], pathData[0])
-		context.strokeStyle = 'rgb(0,0,0);';
+
+		context.strokeStyle = path.outline ? path.fillColor : 'rgb(0,0,0);';
+
 		context.stroke();
-		context.fill(path.fillColor);
-	
+		if( !path.outline ){
+			context.fill(path.fillColor);
+		}
+		
+		if( path.outline ){
+			continue;
+		}
+		
 		context.fillStyle = "rgb(0,0,0)";
 		index = 0;
 		while( index + 3 < pathData.length ){
