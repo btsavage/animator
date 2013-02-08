@@ -108,42 +108,7 @@ function initPath(){
 	
 	for( var i = 0; i < paths.length; i++ ){
 		var path = paths[i];
-		var layer = document.createElement("div");
-		layer.classList.add("layered");
-		layer.style.backgroundColor = path.fillColor;
-		
-		var hideButton = document.createElement("input");
-		hideButton.type = "button";
-		hideButton.value = "Hide";
-		hideButton.style.float = "left";
-		layer.appendChild(hideButton);
-		listenForHideButtonClick(path, hideButton);
-		
-		var outlineButton = document.createElement("input");
-		outlineButton.type = "button";
-		outlineButton.value = "Outline";
-		outlineButton.style.float = "left";
-		layer.appendChild(outlineButton);
-		listenForOutlineButtonClick(path, outlineButton);
-		
-		var pathNameInput = document.createElement("input");
-		pathNameInput.type = "text";
-		pathNameInput.value = path.name;
-		pathNameInput.style.float = "left";
-		pathNameInput.style.display = "none";
-		layer.appendChild(pathNameInput);
-		
-		var pathNameLabel = document.createElement("label");
-		pathNameLabel.textContent = path.name;
-		pathNameLabel.style.float = "left";
-		layer.appendChild(pathNameLabel);
-		listenForPathNameLabelClick(path, pathNameLabel, pathNameInput);
-		
-		//layer.innerHTML = "<div><input style='float:left' type='button' value='Hide'/><p style='float:left'>" + path.name + "</p></div>"
-//		layer.textContent = path.name;
-		listenForIndexChanges(layer, path)
-		
-		document.getElementById('layers').appendChild(layer)
+		addLayer(path);
 	}
 }
 
@@ -470,6 +435,60 @@ function doLayersInit(){
 		var layer = layers.item(i);
 		layer.addEventListener("mousedown", onLayerMouseDown);		
 	}
+	
+	var addLayerButton = document.getElementById("addLayerButton");
+	addLayerButton.addEventListener("click", onAddLayerButtonClicked);
+}
+
+function onAddLayerButtonClicked(e){
+	var fillColor = "rgb(" + Math.floor(255*Math.random()) + "," + Math.floor(255*Math.random()) + "," + Math.floor(255*Math.random()) + ")";
+	var path = new Path( "New Path", fillColor, [
+		[100,100], 
+		[120,100], [140,120], [140,140],
+		[140,160], [120,180], [100,180],
+		[80, 180], [60, 160], [60, 140],
+		[60, 120], [80, 100]
+	], true, false);
+	paths.push(path);
+	addLayer( path )
+	requestAnimationFrame(repaint);
+}
+
+function addLayer(path){
+	var layer = document.createElement("div");
+	layer.classList.add("layered");
+	layer.style.backgroundColor = path.fillColor;
+
+	var hideButton = document.createElement("input");
+	hideButton.type = "button";
+	hideButton.value = "Hide";
+	hideButton.style.float = "left";
+	layer.appendChild(hideButton);
+	listenForHideButtonClick(path, hideButton);
+
+	var outlineButton = document.createElement("input");
+	outlineButton.type = "button";
+	outlineButton.value = "Outline";
+	outlineButton.style.float = "left";
+	layer.appendChild(outlineButton);
+	listenForOutlineButtonClick(path, outlineButton);
+
+	var pathNameInput = document.createElement("input");
+	pathNameInput.type = "text";
+	pathNameInput.value = path.name;
+	pathNameInput.style.float = "left";
+	pathNameInput.style.display = "none";
+	layer.appendChild(pathNameInput);
+
+	var pathNameLabel = document.createElement("label");
+	pathNameLabel.textContent = path.name;
+	pathNameLabel.style.float = "left";
+	layer.appendChild(pathNameLabel);
+	listenForPathNameLabelClick(path, pathNameLabel, pathNameInput);
+
+	listenForIndexChanges(layer, path)
+
+	document.getElementById('layers').appendChild(layer)
 }
 
 var draggedLayer;
