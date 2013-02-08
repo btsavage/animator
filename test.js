@@ -150,14 +150,19 @@ function listenForPathNameLabelClick(path, label, input){
 	})
 }
 
+function getLayerIndex(layer){
+	var layerIndex = 0;
+	var temp = previousDiv(layer);
+	while( temp != null ){
+		layerIndex += 1;
+		temp = previousDiv(temp);
+	}
+	return layerIndex;
+}
+
 function listenForIndexChanges(layer, path){
 	layer.addEventListener( "indexUpdated", function(e){
-		var layerIndex = 0;
-		var temp = previousDiv(layer);
-		while( temp != null ){
-			layerIndex += 1;
-			temp = previousDiv(temp);
-		}
+		var layerIndex = getLayerIndex(layer);
 		
 		var idx = paths.indexOf(path);
 		paths.splice(idx, 1);
@@ -301,6 +306,7 @@ function onInputBegin(event){
 		
 		if( path.contains(event.offsetX, event.offsetY) ){
 			draggedPath = j;
+			selectedLayerByIndex(draggedPath);
 			pathDragOffsetX = (event.offsetX - pathData[0][0]);
 			pathDragOffsetY = (event.offsetY - pathData[0][1]);
 			canvasNode.addEventListener("mousemove", onPathDragged);
@@ -399,6 +405,7 @@ function onLoaded(){
 	repaint();
 	
 	document.getElementById("addLayerButton").addEventListener("click", onAddLayerButtonClicked);
+	document.getElementById("deleteLayerButton").addEventListener("click", onDeleteLayerButtonClicked);
 }
 
 // Assumes that you have already called:
@@ -427,6 +434,20 @@ function drawCircle( pt ){
 
 
 //Layers
+
+function onDeleteLayerButtonClicked(e){
+	if( !selectedLayer ){
+		return;
+	}
+	var layerIndex = getLayerIndex( selectedLayer );
+	var path = paths[layerIndex];
+	paths.splice(layerIndex, 1);
+	
+	selectedLayer.parentElement.removeChild( selectedLayer );
+	selectedLayer = null;
+	
+	requestAnimationFrame(repaint);
+}
 
 function onAddLayerButtonClicked(e){
 	var fillColor = "rgb(" + Math.floor(255*Math.random()) + "," + Math.floor(255*Math.random()) + "," + Math.floor(255*Math.random()) + ")";
@@ -480,16 +501,25 @@ function addLayer(path){
 	document.getElementById('layers').appendChild(layer)
 }
 
+function makeLayerSelected(layer){
+	if(selectedLayer){
+		selectedLayer.classList.remove("selected");
+	}
+	selectedLayer = layer;
+	layer.classList.add("selected");
+}
+
+function selectedLayerByIndex(index){
+	var list = document.getElementById('layers').getElementsByClassName("layered");
+	makeLayerSelected(list[index]);
+}
+
 var selectedLayer;
 var draggedLayer;
 function listenForLayerDragInteraction(path, layer){
 	layer.addEventListener("mousedown", function(e){
 		draggedLayer = layer;
-		if(selectedLayer){
-			selectedLayer.classList.remove("selected");
-		}
-		draggedLayer.classList.add("selected");
-		selectedLayer = draggedLayer;
+		makeLayerSelected(layer);
 
 		document.addEventListener("mousemove", onLayerDrag);
 		document.addEventListener("mouseup", onLayerDragEnd);
