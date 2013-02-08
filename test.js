@@ -91,13 +91,13 @@ function initPath(){
 			[200, 50], [300, 100], [200, 200],
 			[100, 300], [100, 150]
 		]),
-		new Path( "Path 2", "rgb(100, 100, 250)", [
+		new Path( "Path 3", "rgb(100, 100, 250)", [
 			[300, 100],
 			[500, 200], [600, 300], [500, 400],
 			[200, 500], [100, 400], [50, 200],
 			[150, 100], [200, 200]
 		]),
-		new Path( "Path 2", "rgb(0, 250, 185)", [
+		new Path( "Path 4", "rgb(0, 250, 185)", [
 			[50, 50],
 			[150, 50], [200, 20], [250, 15],
 			[250, 200], [100, 200] 
@@ -109,11 +109,60 @@ function initPath(){
 		var layer = document.createElement("div");
 		layer.classList.add("layered");
 		layer.style.backgroundColor = path.fillColor;
-		layer.textContent = path.name;
+		
+		var hideButton = document.createElement("input");
+		hideButton.type = "button";
+		hideButton.value = "Hide";
+		hideButton.style.float = "left";
+		layer.appendChild(hideButton);
+		
+		var outlineButton = document.createElement("input");
+		outlineButton.type = "button";
+		outlineButton.value = "Outline";
+		outlineButton.style.float = "left";
+		layer.appendChild(outlineButton);
+		
+		var pathNameInput = document.createElement("input");
+		pathNameInput.type = "text";
+		pathNameInput.value = path.name;
+		pathNameInput.style.float = "left";
+		pathNameInput.style.display = "none";
+		layer.appendChild(pathNameInput);
+		
+		var pathNameLabel = document.createElement("label");
+		pathNameLabel.textContent = path.name;
+		pathNameLabel.style.float = "left";
+		layer.appendChild(pathNameLabel);
+		listenForPathNameLabelClick(path, pathNameLabel, pathNameInput);
+		
+		//layer.innerHTML = "<div><input style='float:left' type='button' value='Hide'/><p style='float:left'>" + path.name + "</p></div>"
+//		layer.textContent = path.name;
 		listenForIndexChanges(layer, path)
 		
 		document.getElementById('layers').appendChild(layer)
 	}
+}
+
+function listenForPathNameLabelClick(path, label, input){
+	input.addEventListener("change", function(e){
+		path.name = input.value;
+		label.textContent = path.name;
+		console.log("Name changed to: " + path.name);
+		input.style.display = "none";
+		label.style.display = "block";
+	})
+	
+	input.addEventListener("blur", function(e){
+		input.style.display = "none";
+		label.style.display = "block";
+	})
+	
+	label.addEventListener("click", function(e){
+		input.style.display = "block";
+		label.style.display = "none";
+		input.focus();
+		input.select();
+	})
 }
 
 function listenForIndexChanges(layer, path){
@@ -333,7 +382,7 @@ function onKeyDown(event){
 	}
 }
 function onKeyUp(event){
-	console.log( event.keyCode );
+	//console.log( event.keyCode );
 }
 
 function onLoaded(){
