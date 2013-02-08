@@ -18,11 +18,12 @@ var paths;
 
 var snapshots = [];
 
-function Path(name, fillColor, data, outline){
+function Path(name, fillColor, data, visible, outline){
 	this.name = name;
 	this.fillColor = fillColor;
 	this.data = data;
-	this.outline = false;
+	this.visible = visible;
+	this.outline = outline;
 }
 
 Path.prototype = {
@@ -86,23 +87,23 @@ function initPath(){
 			[140,160], [120,180], [100,180],
 			[80, 180], [60, 160], [60, 140],
 			[60, 120], [80, 100]
-		], false),
+		], true, false),
 		new Path( "Path 2", "rgb(240, 190, 210)", [
 			[150, 100],
 			[200, 50], [300, 100], [200, 200],
 			[100, 300], [100, 150]
-		], false),
+		], true, false),
 		new Path( "Path 3", "rgb(100, 100, 250)", [
 			[300, 100],
 			[500, 200], [600, 300], [500, 400],
 			[200, 500], [100, 400], [50, 200],
 			[150, 100], [200, 200]
-		], false),
+		], true, false),
 		new Path( "Path 4", "rgb(0, 250, 185)", [
 			[50, 50],
 			[150, 50], [200, 20], [250, 15],
 			[250, 200], [100, 200] 
-		], false)
+		], true, false)
 	];
 	
 	for( var i = 0; i < paths.length; i++ ){
@@ -116,6 +117,7 @@ function initPath(){
 		hideButton.value = "Hide";
 		hideButton.style.float = "left";
 		layer.appendChild(hideButton);
+		listenForHideButtonClick(path, hideButton);
 		
 		var outlineButton = document.createElement("input");
 		outlineButton.type = "button";
@@ -145,12 +147,20 @@ function initPath(){
 	}
 }
 
+function listenForHideButtonClick(path, button){
+	button.addEventListener("click", function(e){
+		path.visible = !path.visible;
+		button.value = path.visible ? "Hide" : "Show";
+		requestAnimationFrame(repaint);
+	});
+}
+
 function listenForOutlineButtonClick(path, button){
 	button.addEventListener("click", function(e){
 		path.outline = !path.outline;
 		button.value = path.outline ? "Filled" : "Outline";
 		requestAnimationFrame(repaint);
-	})
+	});
 }
 
 function listenForPathNameLabelClick(path, label, input){
@@ -231,6 +241,9 @@ function repaint() {
 	
 	for( var i = 0; i < paths.length; i++ ){
 		var path = paths[i];
+		if( !path.visible ){
+			continue;
+		}
 		var pathData = path.data;
 		
 		context.beginPath();
