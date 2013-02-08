@@ -398,7 +398,7 @@ function onLoaded(){
 	initPath();
 	repaint();
 	
-	doLayersInit();
+	document.getElementById("addLayerButton").addEventListener("click", onAddLayerButtonClicked);
 }
 
 // Assumes that you have already called:
@@ -428,18 +428,6 @@ function drawCircle( pt ){
 
 //Layers
 
-function doLayersInit(){
-	var layersContainer = document.getElementById("layers");
-	var layers = layersContainer.children;
-	for( var i = 0; i < layers.length; i++ ){
-		var layer = layers.item(i);
-		layer.addEventListener("mousedown", onLayerMouseDown);		
-	}
-	
-	var addLayerButton = document.getElementById("addLayerButton");
-	addLayerButton.addEventListener("click", onAddLayerButtonClicked);
-}
-
 function onAddLayerButtonClicked(e){
 	var fillColor = "rgb(" + Math.floor(255*Math.random()) + "," + Math.floor(255*Math.random()) + "," + Math.floor(255*Math.random()) + ")";
 	var path = new Path( "New Path", fillColor, [
@@ -458,6 +446,7 @@ function addLayer(path){
 	var layer = document.createElement("div");
 	layer.classList.add("layered");
 	layer.style.backgroundColor = path.fillColor;
+	listenForLayerDragInteraction(path, layer);
 
 	var hideButton = document.createElement("input");
 	hideButton.type = "button";
@@ -491,12 +480,20 @@ function addLayer(path){
 	document.getElementById('layers').appendChild(layer)
 }
 
+var selectedLayer;
 var draggedLayer;
-function onLayerMouseDown(event){
-	draggedLayer = event.target;
-	
-	document.addEventListener("mousemove", onLayerDrag);
-	document.addEventListener("mouseup", onLayerDragEnd);
+function listenForLayerDragInteraction(path, layer){
+	layer.addEventListener("mousedown", function(e){
+		draggedLayer = layer;
+		if(selectedLayer){
+			selectedLayer.classList.remove("selected");
+		}
+		draggedLayer.classList.add("selected");
+		selectedLayer = draggedLayer;
+
+		document.addEventListener("mousemove", onLayerDrag);
+		document.addEventListener("mouseup", onLayerDragEnd);
+	});
 }
 
 function previousDiv( layer ){

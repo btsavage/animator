@@ -7,7 +7,7 @@
 	height: 18px;
 	
 	border: 1px solid rgb(100,100,100);
-	padding: 1px;
+	padding: 3px;
 	margin: 2px;
 	
 	
@@ -19,4 +19,9 @@
 	/* Rules below not implemented in browsers yet */
 	-o-user-select: none;
 	user-select: none;
+}
+
+.layered.selected{
+	border: 4px solid rgb(180,180,0);
+	padding: 0;
 }
