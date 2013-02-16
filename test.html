@@ -7,11 +7,11 @@
     <script type="text/javascript" src="test.js"></script>
   </head>
   <body>
-    <div id="layers"></div>
-    <div id="layers_toolbar">
-      <input id="addLayerButton" type="button" value="Add Layer" />
-      <input id="deleteLayerButton" type="button" value="Delete Layer" />
+    <table id="layers" cellspacing="0" cellpadding="0" border="1"></table>
+    <div id="layers_toolbar" class="unselectable">
+      <input id="addLayerButton" class="unselectable" type="button" value="Add Layer" />
+      <input id="deleteLayerButton" class="unselectable" type="button" value="Delete Layer" />
     </div>
-    <canvas id="canvas">
+    <canvas id="canvas" class="unselectable">
   </body>
 </html>

@@ -152,10 +152,10 @@ function listenForPathNameLabelClick(path, label, input){
 
 function getLayerIndex(layer){
 	var layerIndex = 0;
-	var temp = previousDiv(layer);
+	var temp = previousSiblingOfType(layer, HTMLTableRowElement);
 	while( temp != null ){
 		layerIndex += 1;
-		temp = previousDiv(temp);
+		temp = previousSiblingOfType(temp, HTMLTableRowElement);
 	}
 	return layerIndex;
 }
@@ -464,37 +464,51 @@ function onAddLayerButtonClicked(e){
 }
 
 function addLayer(path){
-	var layer = document.createElement("div");
+	var layer = document.createElement("tr");
 	layer.classList.add("layered");
-	layer.style.backgroundColor = path.fillColor;
-	listenForLayerDragInteraction(path, layer);
+	layer.classList.add("unselectable");
+
+	var layerInfo = document.createElement("th");
+	layerInfo.style.backgroundColor = path.fillColor;
+	layer.appendChild(layerInfo);
+	
+	listenForLayerDragInteraction(path, layer, layerInfo);
 
 	var hideButton = document.createElement("input");
+	hideButton.classList.add("unselectable");
 	hideButton.type = "button";
 	hideButton.value = "Hide";
 	hideButton.style.float = "left";
-	layer.appendChild(hideButton);
+	layerInfo.appendChild(hideButton);
 	listenForHideButtonClick(path, hideButton);
 
 	var outlineButton = document.createElement("input");
+	outlineButton.classList.add("unselectable");
 	outlineButton.type = "button";
 	outlineButton.value = "Outline";
 	outlineButton.style.float = "left";
-	layer.appendChild(outlineButton);
+	layerInfo.appendChild(outlineButton);
 	listenForOutlineButtonClick(path, outlineButton);
 
 	var pathNameInput = document.createElement("input");
+	pathNameInput.classList.add("unselectable");
 	pathNameInput.type = "text";
 	pathNameInput.value = path.name;
 	pathNameInput.style.float = "left";
 	pathNameInput.style.display = "none";
-	layer.appendChild(pathNameInput);
+	layerInfo.appendChild(pathNameInput);
 
 	var pathNameLabel = document.createElement("label");
+	pathNameLabel.classList.add("unselectable");
 	pathNameLabel.textContent = path.name;
 	pathNameLabel.style.float = "left";
-	layer.appendChild(pathNameLabel);
+	layerInfo.appendChild(pathNameLabel);
 	listenForPathNameLabelClick(path, pathNameLabel, pathNameInput);
+	
+	for( var i = 0; i < 100; i++ ){
+		var frame = document.createElement("td");
+		layer.appendChild(frame);
+	}
 
 	listenForIndexChanges(layer, path)
 
@@ -516,8 +530,8 @@ function selectedLayerByIndex(index){
 
 var selectedLayer;
 var draggedLayer;
-function listenForLayerDragInteraction(path, layer){
-	layer.addEventListener("mousedown", function(e){
+function listenForLayerDragInteraction(path, layer, draggableSection){
+	draggableSection.addEventListener("mousedown", function(e){
 		draggedLayer = layer;
 		makeLayerSelected(layer);
 
@@ -526,13 +540,13 @@ function listenForLayerDragInteraction(path, layer){
 	});
 }
 
-function previousDiv( layer ){
-	var temp = layer.previousSibling;
+function previousSiblingOfType( element, type ){
+	var temp = element.previousSibling;
 	while( true ){
 		if( !temp ){
 			return null;
 		}
-		if(temp instanceof HTMLDivElement){
+		if(temp instanceof type){
 			return temp;
 		}
 		temp = temp.previousSibling;
@@ -540,13 +554,13 @@ function previousDiv( layer ){
 	return temp;
 }
 
-function nextDiv( layer ){
-	var temp = layer.nextSibling;
+function nextSiblingOfType( element, type ){
+	var temp = element.nextSibling;
 	while( true ){
 		if( !temp ){
 			return null;
 		}
-		if(temp instanceof HTMLDivElement){
+		if(temp instanceof type){
 			return temp;
 		}
 		temp = temp.nextSibling;
@@ -556,11 +570,11 @@ function nextDiv( layer ){
 
 
 function onLayerDrag(event){
-	var above = previousDiv(draggedLayer);
+	var above = previousSiblingOfType(draggedLayer, HTMLTableRowElement);
 	var insertionIndex = null;
 	while( above && event.y < above.getBoundingClientRect().bottom ){
 		insertionIndex = above;
-		above = previousDiv(above);
+		above = previousSiblingOfType(above, HTMLTableRowElement);
 	}
 	
 	if( insertionIndex ){
@@ -569,10 +583,10 @@ function onLayerDrag(event){
 		return;
 	}
 	
-	var below = nextDiv(draggedLayer);
+	var below = nextSiblingOfType(draggedLayer, HTMLTableRowElement);
 	while( below && event.y > below.getBoundingClientRect().top ){
 		insertionIndex = below;
-		below = nextDiv(below);
+		below = nextSiblingOfType(below, HTMLTableRowElement);
 	}
 	
 	if( insertionIndex ){
