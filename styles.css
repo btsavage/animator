@@ -38,3 +38,11 @@ td{
 td.selected{
 	background-color: rgb(255,0,0);
 }
+
+#workarea{
+	position: relative;
+}
+
+.relative{
+	position: absolute;
+}
