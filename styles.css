@@ -32,5 +32,9 @@
 
 td{
 	width: 10px;
-	background-color: 0xfffff;
+	background-color: rgb(255,255,255);
+}
+
+td.selected{
+	background-color: rgb(255,0,0);
 }

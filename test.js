@@ -16,6 +16,12 @@ var canvasNode;
 var context;
 var paths;
 
+var selectedLayer;
+var draggedLayer;
+
+var selectedCell;
+var selectedRegionEnd;
+
 var snapshots = [];
 
 function Path(name, fillColor, data, visible, outline){
@@ -150,19 +156,19 @@ function listenForPathNameLabelClick(path, label, input){
 	})
 }
 
-function getLayerIndex(layer){
+function getElementIndexForTag(element, tag){
 	var layerIndex = 0;
-	var temp = previousSiblingOfType(layer, HTMLTableRowElement);
+	var temp = previousSiblingOfTag(element, tag);
 	while( temp != null ){
 		layerIndex += 1;
-		temp = previousSiblingOfType(temp, HTMLTableRowElement);
+		temp = previousSiblingOfTag(temp, tag);
 	}
 	return layerIndex;
 }
 
 function listenForIndexChanges(layer, path){
 	layer.addEventListener( "indexUpdated", function(e){
-		var layerIndex = getLayerIndex(layer);
+		var layerIndex = getElementIndexForTag(layer, HTMLTableRowElement);
 		
 		var idx = paths.indexOf(path);
 		paths.splice(idx, 1);
@@ -406,6 +412,8 @@ function onLoaded(){
 	
 	document.getElementById("addLayerButton").addEventListener("click", onAddLayerButtonClicked);
 	document.getElementById("deleteLayerButton").addEventListener("click", onDeleteLayerButtonClicked);
+	
+	document.getElementById("layers").addEventListener("click", onLayerGridClicked);
 }
 
 // Assumes that you have already called:
@@ -439,7 +447,7 @@ function onDeleteLayerButtonClicked(e){
 	if( !selectedLayer ){
 		return;
 	}
-	var layerIndex = getLayerIndex( selectedLayer );
+	var layerIndex = getElementIndexForTag( selectedLayer, HTMLTableRowElement );
 	var path = paths[layerIndex];
 	paths.splice(layerIndex, 1);
 	
@@ -447,6 +455,29 @@ function onDeleteLayerButtonClicked(e){
 	selectedLayer = null;
 	
 	requestAnimationFrame(repaint);
+}
+
+function getRow( cell ){
+	
+}
+
+function onLayerGridClicked(e){
+	var frame = e.target;
+	if( frame.tagName == "TH" ){
+		console.log("nope");
+		return;
+	}
+	if( frame instanceof HTMLTableCellElement ){
+		var column = getElementIndexForTag(frame, HTMLTableCellElement);
+		var row = getElementIndexForTag(frame.parentElement, HTMLTableRowElement);
+		console.log("row: ", row, "column: ", column);
+		
+		if( e.shiftKey && selectedCell ){
+			selectRegion( selectedCell, frame );
+		}else{
+			makeCellSelected( frame );
+		}
+	}
 }
 
 function onAddLayerButtonClicked(e){
@@ -464,7 +495,7 @@ function onAddLayerButtonClicked(e){
 }
 
 function addLayer(path){
-	var layer = document.createElement("tr");
+	var layer = document.createElement("TR");
 	layer.classList.add("layered");
 	layer.classList.add("unselectable");
 
@@ -506,13 +537,72 @@ function addLayer(path){
 	listenForPathNameLabelClick(path, pathNameLabel, pathNameInput);
 	
 	for( var i = 0; i < 100; i++ ){
-		var frame = document.createElement("td");
+		var frame = document.createElement("TD");
 		layer.appendChild(frame);
 	}
 
 	listenForIndexChanges(layer, path)
 
 	document.getElementById('layers').appendChild(layer)
+}
+
+function deselect(){
+	if(selectedCell && selectedRegionEnd){
+		var startColumn = getElementIndexForTag(selectedCell, "TD");
+		var startRow = getElementIndexForTag(selectedCell.parentElement, "TR");
+		
+		var endColumn = getElementIndexForTag(selectedRegionEnd, "TD");
+		var endRow = getElementIndexForTag(selectedRegionEnd.parentElement, "TR");
+		
+		var allLayers = document.getElementById("layers").getElementsByClassName("layered");
+		for( var row = Math.min(startRow, endRow); row <= Math.max(startRow, endRow); row++ ){
+			var tempRow = allLayers.item(row);
+			var frames = tempRow.getElementsByTagName("TD");
+			for( var column = Math.min(startColumn, endColumn); column <= Math.max(startColumn, endColumn); column++ ){
+				var tempFrame = frames.item(column);
+				tempFrame.classList.remove("selected");
+			}
+		}
+	}
+	else if(selectedCell){
+		selectedCell.classList.remove("selected");
+	}
+}
+
+function selectRegion(startCell, endCell){
+	deselect();
+	
+	selectedRegionEnd = endCell;
+	
+	var startColumn = getElementIndexForTag(startCell, "TD");
+	var startRow = getElementIndexForTag(startCell.parentElement, "TR");
+	
+	var endColumn = getElementIndexForTag(endCell, "TD");
+	var endRow = getElementIndexForTag(endCell.parentElement, "TR");
+	
+	var allLayers = document.getElementById("layers").getElementsByClassName("layered");
+	for( var row = 0; row <= allLayers.length; row++ ){
+		var tempRow = allLayers.item(row);
+		if( row < Math.min(startRow, endRow) || row > Math.max(startRow, endRow) ){
+			tempRow.classList.remove("selected");
+		}else{
+			tempRow.classList.add("selected");
+			var frames = tempRow.getElementsByTagName("TD");
+			for( var column = Math.min(startColumn, endColumn); column <= Math.max(startColumn, endColumn); column++ ){
+				var tempFrame = frames.item(column);
+				tempFrame.classList.add("selected");
+			}
+		}
+	}
+}
+
+function makeCellSelected(cell){
+	deselect();
+
+	selectedCell = cell;
+	cell.classList.add("selected");
+	
+	makeLayerSelected(cell.parentElement);
 }
 
 function makeLayerSelected(layer){
@@ -528,8 +618,6 @@ function selectedLayerByIndex(index){
 	makeLayerSelected(list[index]);
 }
 
-var selectedLayer;
-var draggedLayer;
 function listenForLayerDragInteraction(path, layer, draggableSection){
 	draggableSection.addEventListener("mousedown", function(e){
 		draggedLayer = layer;
@@ -540,13 +628,13 @@ function listenForLayerDragInteraction(path, layer, draggableSection){
 	});
 }
 
-function previousSiblingOfType( element, type ){
+function previousSiblingOfTag( element, tag ){
 	var temp = element.previousSibling;
 	while( true ){
 		if( !temp ){
 			return null;
 		}
-		if(temp instanceof type){
+		if(temp.tagName == tag){
 			return temp;
 		}
 		temp = temp.previousSibling;
@@ -554,13 +642,13 @@ function previousSiblingOfType( element, type ){
 	return temp;
 }
 
-function nextSiblingOfType( element, type ){
+function nextSiblingOfTag( element, tag ){
 	var temp = element.nextSibling;
 	while( true ){
 		if( !temp ){
 			return null;
 		}
-		if(temp instanceof type){
+		if(temp.tagName == tag){
 			return temp;
 		}
 		temp = temp.nextSibling;
@@ -570,11 +658,11 @@ function nextSiblingOfType( element, type ){
 
 
 function onLayerDrag(event){
-	var above = previousSiblingOfType(draggedLayer, HTMLTableRowElement);
+	var above = previousSiblingOfTag(draggedLayer, "TR");
 	var insertionIndex = null;
 	while( above && event.y < above.getBoundingClientRect().bottom ){
 		insertionIndex = above;
-		above = previousSiblingOfType(above, HTMLTableRowElement);
+		above = previousSiblingOfTag(above, "TR");
 	}
 	
 	if( insertionIndex ){
@@ -583,10 +671,10 @@ function onLayerDrag(event){
 		return;
 	}
 	
-	var below = nextSiblingOfType(draggedLayer, HTMLTableRowElement);
+	var below = nextSiblingOfTag(draggedLayer, "TR");
 	while( below && event.y > below.getBoundingClientRect().top ){
 		insertionIndex = below;
-		below = nextSiblingOfType(below, HTMLTableRowElement);
+		below = nextSiblingOfTag(below, "TR");
 	}
 	
 	if( insertionIndex ){
