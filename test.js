@@ -168,7 +168,7 @@ function getElementIndexForTag(element, tag){
 
 function listenForIndexChanges(layer, path){
 	layer.addEventListener( "indexUpdated", function(e){
-		var layerIndex = getElementIndexForTag(layer, HTMLTableRowElement);
+		var layerIndex = getElementIndexForTag(layer, "TR");
 		
 		var idx = paths.indexOf(path);
 		paths.splice(idx, 1);
@@ -483,7 +483,7 @@ function onDeleteLayerButtonClicked(e){
 	if( !selectedLayer ){
 		return;
 	}
-	var layerIndex = getElementIndexForTag( selectedLayer, HTMLTableRowElement );
+	var layerIndex = getElementIndexForTag( selectedLayer, "TR" );
 	var path = paths[layerIndex];
 	paths.splice(layerIndex, 1);
 	
@@ -505,7 +505,7 @@ function onLayerGridClicked(e){
 	}
 	if( frame instanceof HTMLTableCellElement ){
 		var column = getElementIndexForTag(frame, HTMLTableCellElement);
-		var row = getElementIndexForTag(frame.parentElement, HTMLTableRowElement);
+		var row = getElementIndexForTag(frame.parentElement, "TR");
 		console.log("row: ", row, "column: ", column);
 		
 		if( e.shiftKey && selectedCell ){
@@ -696,7 +696,9 @@ function nextSiblingOfTag( element, tag ){
 function onLayerDrag(event){
 	var above = previousSiblingOfTag(draggedLayer, "TR");
 	var insertionIndex = null;
+	
 	while( above && event.y < above.getBoundingClientRect().bottom ){
+		console.log("bottom");
 		insertionIndex = above;
 		above = previousSiblingOfTag(above, "TR");
 	}
@@ -709,6 +711,7 @@ function onLayerDrag(event){
 	
 	var below = nextSiblingOfTag(draggedLayer, "TR");
 	while( below && event.y > below.getBoundingClientRect().top ){
+		console.log("top");
 		insertionIndex = below;
 		below = nextSiblingOfTag(below, "TR");
 	}
@@ -721,7 +724,6 @@ function onLayerDrag(event){
 
 function onLayerDragEnd(event){
 	var layer = event.target;
-	
 	document.removeEventListener("mousemove", onLayerDrag);
 	document.removeEventListener("mouseup", onLayerDragEnd);
 }
