@@ -41,13 +41,8 @@ function onDeleteLayerButtonClicked(e){
 		return;
 	}
 	var layerIndex = getElementIndexForTag( selectedLayer, "TR" );
-	var path = paths[layerIndex];
-	paths.splice(layerIndex, 1);
 	
-	selectedLayer.parentElement.removeChild( selectedLayer );
-	selectedLayer = null;
-	
-	requestAnimationFrame(repaint);
+	deleteLayer(layerIndex);
 }
 
 function getElementIndexForTag(element, tag){
@@ -75,7 +70,6 @@ function listenForIndexChanges(layer, path){
 function onLayerGridClicked(e){
 	var frame = e.target;
 	if( frame.tagName == "TH" ){
-		console.log("nope");
 		return;
 	}
 	if( frame instanceof HTMLTableCellElement ){
@@ -102,6 +96,8 @@ function onAddLayerButtonClicked(e){
 	], true, false);
 	paths.push(path);
 	addLayer( path )
+	draggedPath = paths.length-1;
+	dragIndex = -1;
 	requestAnimationFrame(repaint);
 }
 
@@ -222,6 +218,8 @@ function makeLayerSelected(layer){
 	}
 	selectedLayer = layer;
 	layer.classList.add("selected");
+	draggedPath = getElementIndexForTag(selectedLayer, "TR");
+	requestAnimationFrame(repaint);
 }
 
 function selectedLayerByIndex(index){

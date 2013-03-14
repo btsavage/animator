@@ -5,8 +5,8 @@ const KNOB_RADIUS = 5;
 const KNOB_RADIUS_SQUARED = KNOB_RADIUS*KNOB_RADIUS;
 const TWO_PI = 2*Math.PI;
 
-var dragIndex;
-var draggedPath;
+var dragIndex = -1;
+var draggedPath = -1;
 var endpointIndex;
 var oppositeControlIndex;
 var pathDragOffsetX;
@@ -174,27 +174,30 @@ function repaint() {
 			index += 3;
 		}
 		traceBezier(context, pathData[index], pathData[index+1], pathData[0])
-
-		context.strokeStyle = path.outline ? path.fillColor : 'rgb(0,0,0);';
+		
+		if( draggedPath === i ){
+			context.strokeStyle = 'rgb(255, 0, 0)';
+		}else{
+			context.strokeStyle = path.outline ? path.fillColor : 'rgb(0,0,0);';
+		}
 
 		context.stroke();
 		if( !path.outline ){
 			context.fill(path.fillColor);
 		}
 		
-		context.fillStyle = "rgb(0,0,0)";
 		index = 0;
 		while( index + 3 < pathData.length ){
-			drawHandles(context, pathData[index], pathData[index+1]);
-			drawHandles(context, pathData[index+3], pathData[index+2]);
+			drawHandles(context, pathData[index], pathData[index+1], draggedPath === i, dragIndex === (index+1));
+			drawHandles(context, pathData[index+3], pathData[index+2], draggedPath === i, dragIndex === (index+2));
 			index += 3;
 		}
-		drawHandles(context, pathData[index], pathData[index+1]);
-		drawHandles(context, pathData[0], pathData[index+2]);
+		drawHandles(context, pathData[index], pathData[index+1], draggedPath === i, dragIndex === (index+1));
+		drawHandles(context, pathData[0], pathData[index+2], draggedPath === i, dragIndex === (index+2));
 	
 		index = 0;
 		while( index < pathData.length ){
-			drawCircle( pathData[index] );
+			drawCircle( pathData[index], draggedPath === i, dragIndex === (index) );
 			index += 3;
 		}
 	}
@@ -219,6 +222,7 @@ function onInputBegin(event){
 				dragIndex = i;
 				canvasNode.addEventListener("mousemove", onEndpointDrag);
 				document.addEventListener("mouseup", onEndpointDragComplete);
+				requestAnimationFrame(repaint);
 				return;
 			}
 		}
@@ -234,6 +238,7 @@ function onInputBegin(event){
 				oppositeControlIndex = i > 0 ? i - 1 : pathData.length - 1;
 				canvasNode.addEventListener("mousemove", onControlPointDrag);
 				document.addEventListener("mouseup", onControlPointDragComplete);
+				requestAnimationFrame(repaint);
 				return;
 			}
 		
@@ -246,6 +251,7 @@ function onInputBegin(event){
 				oppositeControlIndex = (i+4) < pathData.length ? (i+4) : 1;
 				canvasNode.addEventListener("mousemove", onControlPointDrag);
 				document.addEventListener("mouseup", onControlPointDragComplete);
+				requestAnimationFrame(repaint);
 				return;
 			}
 			i += 3;
@@ -253,11 +259,13 @@ function onInputBegin(event){
 		
 		if( path.contains(event.offsetX, event.offsetY) ){
 			draggedPath = j;
+			dragIndex = -1;
 			selectedLayerByIndex(draggedPath);
 			pathDragOffsetX = (event.offsetX - pathData[0][0]);
 			pathDragOffsetY = (event.offsetY - pathData[0][1]);
 			canvasNode.addEventListener("mousemove", onPathDragged);
 			document.addEventListener("mouseup", onPathDragComplete);
+			requestAnimationFrame(repaint);
 			return;
 		}
 	}
@@ -331,6 +339,14 @@ function onKeyDown(event){
 		savePosition(1);
 	}else if( event.keyCode == 32 ){
 		play();
+	}else if( event.keyCode == 8 ){
+		event.preventDefault();
+		if( draggedPath >= 0 ){
+			deleteLayer( draggedPath );
+		}
+		
+	}else{
+		console.log( event.keyCode );
 	}
 }
 function onKeyUp(event){
@@ -346,8 +362,8 @@ function onLoaded(){
 	
 	canvasNode.addEventListener("mousedown", onInputBegin);
 	
-	window.addEventListener("keydown", onKeyDown);
-	window.addEventListener("keydown", onKeyUp);
+	document.addEventListener("keydown", onKeyDown);
+	document.addEventListener("keydown", onKeyUp);
 	
 	initPath();
 	repaint();
@@ -361,6 +377,21 @@ function onLoaded(){
 	canvasNode.addEventListener('drop', handleDrop, false);
 }
 
+function deleteLayer(layerIndex){
+	var path = paths[layerIndex];
+	paths.splice(layerIndex, 1);
+	
+	var list = document.getElementById('layers').getElementsByClassName("layered");
+	selectedLayer = list[layerIndex];
+	selectedLayer.parentElement.removeChild( selectedLayer );
+	selectedLayer = null;
+	
+	draggedPath = -1;
+	dragIndex = -1;
+	
+	requestAnimationFrame(repaint);
+}
+
 // Assumes that you have already called:
 // context.beginPath(pathData[0][0], pathData[0][1]);
 // context.moveTo()
@@ -369,18 +400,22 @@ function traceBezier(context, control1, control2, end){
 }
 
 // No assumptions made about context
-function drawHandles(context, endpoint, controlPoint){
+function drawHandles(context, endpoint, controlPoint, pathSelected, endpointSelected){
 	context.beginPath();
 	context.moveTo( endpoint[0], endpoint[1] );
 	context.lineTo( controlPoint[0], controlPoint[1] );
-	context.strokeStyle = 'rgb(0,0,0);';
+	var style = pathSelected ? (endpointSelected ? "rgb(0,0,255)" : "rgb(255,0,0)") : "rgb(0,0,0)";
+	context.fillStyle = style;
+	context.strokeStyle = style;
 	context.stroke();
 
-	drawCircle(controlPoint)
+	drawCircle(controlPoint, pathSelected, endpointSelected)
 }
 
-function drawCircle( pt ){
+function drawCircle( pt, pathSelected, endpointSelected ){
 	context.beginPath();
 	context.arc( pt[0], pt[1], KNOB_RADIUS, 0, TWO_PI );
+	var style = pathSelected ? (endpointSelected ? "rgb(0,0,255)" : "rgb(255,0,0)") : "rgb(0,0,0)";
+	context.fillStyle = style;
 	context.fill();
 }
