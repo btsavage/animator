@@ -462,6 +462,8 @@ function deletePoint(pathIndex, pointIndex){
 	var path = paths[pathIndex];
 	path.deletePointAt(pointIndex);
 	
+	dragIndex = -1;
+	
 	requestAnimationFrame(repaint);
 }
 
