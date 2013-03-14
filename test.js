@@ -77,7 +77,6 @@ function countCubicBezierIntersections(start, control1, control2, end, x, y){
 	
 	for( var i = 0; i < NUM_MIDPOINTS; i++ ){
 		var cur = cubicBezierAt(start, control1, control2, end, (i+1)/(NUM_MIDPOINTS+1));
-		context.lineTo(cur[0], cur[1]);
 		total += countLineIntersections(last, cur, x, y);
 		last = cur;
 	}
