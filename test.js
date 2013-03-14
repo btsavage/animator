@@ -60,6 +60,22 @@ Path.prototype = {
 			var foo = this.data.splice(0,3);
 			this.data.splice(-1,1, foo[2]);
 		}
+	},
+	injectPoint: function injectPoint(idx, t){
+		var start = this.data[idx];
+		var control1 = this.data[idx+1];
+		var control2 = this.data[idx+2];
+		var end = this.data[ (idx+3)%this.data.length ];
+		
+		var side1 = lirp(start, control1, t);
+		var side2 = lirp(control1, control2, t);
+		var side3 = lirp(control2, end, t);
+		
+		var inner1 = lirp(side1, side2, t);
+		var inner2 = lirp(side2, side3, t);
+		var newPoint = lirp( inner1, inner2, t );
+
+		this.data.splice(idx+1, 2, side1, inner1, newPoint, inner2, side3);
 	}
 }
 
@@ -90,6 +106,39 @@ function cubicBezierAt(start, control1, control2, end, t){
 	var side2 = lirp(control1, control2, t);
 	var side3 = lirp(control2, end, t);
 	return lirp( lirp(side1, side2, t), lirp(side2, side3, t), t );
+}
+
+const EDGE_THRESHOLD = 5;
+function pointApproxTValue( start, control1, control2, end, x, y ){
+	var last = start;
+	
+	for( var i = 0; i < NUM_MIDPOINTS; i++ ){
+		var cur = cubicBezierAt(start, control1, control2, end, (i+1)/(NUM_MIDPOINTS+1));
+		var dx = cur[0] - last[0];
+		var dy = cur[1] - last[1];
+		var len = Math.sqrt( dx*dx + dy*dy );
+		var offsetX = x - last[0];
+		var offsetY = y - last[1];
+		var rotatedX = offsetX*dx/len + offsetY*dy/len;
+		if( rotatedX > 0 && rotatedX < len ){
+			var rotatedY = -offsetX*dy/len + offsetY*dx/len;
+			if( rotatedY < EDGE_THRESHOLD && rotatedY > -EDGE_THRESHOLD ){
+				var interp = (rotatedX / len);
+				return (i+interp)/(NUM_MIDPOINTS+1);
+			}
+		}
+		
+		last = cur;
+	}
+	return NaN;
+}
+
+function nearestPointToLineSegment(start, end, x, y){
+	v = [end.y - start.y, end.x - start.x];
+	S + u*(E-S) = P + v*perp(E-S);
+	S - P = - u*(E-S) + v*perp(E-S);
+	S-P = [ -(E-S), perp(E-S) ] * [u, v];
+	
 }
 
 function countLineIntersections(start, end, x, y){
@@ -189,6 +238,34 @@ function repaint() {
 		while( index < pathData.length ){
 			drawCircle( pathData[index], draggedPath === i, dragIndex === (index) );
 			index += 3;
+		}
+	}
+}
+
+function onDoubleClick(event){
+	console.log("double click");
+	for( var j = paths.length - 1; j >= 0; j-- ){
+		var path = paths[j];
+		if( !path.visible ){
+			continue;
+		}
+		var pathData = path.data;
+		
+		for( var i = 0; i < pathData.length; i+=3 ){
+			var t = pointApproxTValue( 
+				pathData[i], 
+				pathData[i+1], 
+				pathData[i+2], 
+				pathData[(i+3)%pathData.length], 
+				event.offsetX, 
+				event.offsetY 
+			);
+			console.log(t);
+			if( !isNaN(t) ){
+				path.injectPoint( i, t );
+				requestAnimationFrame(repaint);
+				return;
+			}
 		}
 	}
 }
@@ -349,6 +426,7 @@ function onLoaded(){
 	canvas.height = window.innerHeight;
 	
 	canvasNode.addEventListener("mousedown", onInputBegin);
+	canvasNode.addEventListener("dblclick", onDoubleClick);
 	
 	document.addEventListener("keydown", onKeyDown);
 	document.addEventListener("keydown", onKeyUp);
