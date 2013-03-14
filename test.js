@@ -39,6 +39,27 @@ Path.prototype = {
 			totalIntersections += countCubicBezierIntersections(this.data[i], this.data[i+1], this.data[i+2], this.data[(i+3)%this.data.length], x, y);
 		}
 		return (totalIntersections % 2) == 1;
+	},
+	deletePointAt: function deletePointAt(index){
+		var mod = index % 3;
+		var nearestEndpoint;
+		if( mod == 0 ){
+			nearestEndpoint = index;
+		}else if( mod == 1 ){
+			nearestEndpoint = index - 1;
+		}else if( mod == 2 ){
+			if( index + 1 >= this.data.length ){
+				nearestEndpoint = 0;
+			}else{
+				nearestEndpoint = index + 1;
+			}
+		}
+		if( nearestEndpoint > 0 ){
+			this.data.splice(nearestEndpoint-1, 3);
+		}else{
+			var foo = this.data.splice(0,3);
+			this.data.splice(-1,1, foo[2]);
+		}
 	}
 }
 
@@ -118,39 +139,9 @@ function initPath(){
 	}
 }
 
-function savePosition( x ){
-	throw new Error("out of date");
-	/*
-	var snapshot = [];
-	for( var i = 0; i < path.length; i++ ){
-		snapshot[i] = path[i].slice(0);
-	}
-	snapshots[x] = snapshot;
-	*/
-}
 
 var tween = 0.5;
 var velocity = 0.01;
-function play(){
-	throw new Error("out of date");
-	/*
-	for(var i = 0; i < path.length; i++){
-		path[i][0] = snapshots[0][i][0]*tween + snapshots[1][i][0]*(1-tween);
-		path[i][1] = snapshots[0][i][1]*tween + snapshots[1][i][1]*(1-tween);
-	}
-	tween += velocity;
-	if( tween >= 1 ){
-		tween = 1;
-		velocity *= -1;
-	}
-	if( tween <= 0 ){
-		tween = 0;
-		velocity *= -1;
-	}
-	repaint();
-	requestAnimationFrame(play);
-	*/
-}
 
 function repaint() {
 	console.log("repaint");
@@ -333,16 +324,14 @@ function onControlPointDragComplete(event){
 }
 
 function onKeyDown(event){
-	if( event.keyCode == 49 ){
-		savePosition(0);
-	}else if( event.keyCode == 50 ){
-		savePosition(1);
-	}else if( event.keyCode == 32 ){
-		play();
-	}else if( event.keyCode == 8 ){
+	if( event.keyCode == 8 ){
 		event.preventDefault();
 		if( draggedPath >= 0 ){
-			deleteLayer( draggedPath );
+			if( dragIndex >= 0 ){
+				deletePoint(draggedPath, dragIndex);
+			}else{
+				deleteLayer( draggedPath );
+			}
 		}
 		
 	}else{
@@ -388,6 +377,13 @@ function deleteLayer(layerIndex){
 	
 	draggedPath = -1;
 	dragIndex = -1;
+	
+	requestAnimationFrame(repaint);
+}
+
+function deletePoint(pathIndex, pointIndex){
+	var path = paths[pathIndex];
+	path.deletePointAt(pointIndex);
 	
 	requestAnimationFrame(repaint);
 }
