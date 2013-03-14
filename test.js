@@ -243,7 +243,6 @@ function repaint() {
 }
 
 function onDoubleClick(event){
-	console.log("double click");
 	for( var j = paths.length - 1; j >= 0; j-- ){
 		var path = paths[j];
 		if( !path.visible ){
@@ -260,7 +259,7 @@ function onDoubleClick(event){
 				event.offsetX, 
 				event.offsetY 
 			);
-			console.log(t);
+			
 			if( !isNaN(t) ){
 				path.injectPoint( i, t );
 				requestAnimationFrame(repaint);
