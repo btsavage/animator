@@ -182,10 +182,6 @@ function repaint() {
 			context.fill(path.fillColor);
 		}
 		
-		if( path.outline ){
-			continue;
-		}
-		
 		context.fillStyle = "rgb(0,0,0)";
 		index = 0;
 		while( index + 3 < pathData.length ){
@@ -205,9 +201,13 @@ function repaint() {
 }
 
 function onInputBegin(event){
+	event.preventDefault();
 	// test for collisions
 	for( var j = paths.length - 1; j >= 0; j-- ){
 		var path = paths[j];
+		if( !path.visible ){
+			continue;
+		}
 		var pathData = path.data;
 
 		var i;
@@ -313,9 +313,10 @@ function onControlPointDrag(event){
 	pathData[dragIndex][0] = event.offsetX;
 	pathData[dragIndex][1] = event.offsetY;
 	
-	pathData[oppositeControlIndex][0] = pathData[endpointIndex][0] - (pathData[dragIndex][0] - pathData[endpointIndex][0]);
-	pathData[oppositeControlIndex][1] = pathData[endpointIndex][1] - (pathData[dragIndex][1] - pathData[endpointIndex][1]);
-	
+	if( !event.altKey ){
+		pathData[oppositeControlIndex][0] = pathData[endpointIndex][0] - (pathData[dragIndex][0] - pathData[endpointIndex][0]);
+		pathData[oppositeControlIndex][1] = pathData[endpointIndex][1] - (pathData[dragIndex][1] - pathData[endpointIndex][1]);
+	}
 	requestAnimationFrame(repaint);
 }
 function onControlPointDragComplete(event){
